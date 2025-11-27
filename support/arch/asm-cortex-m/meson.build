@@ -65,40 +65,14 @@ target_cflags = [
 #  - kconfig set correct arch if hard float is required.
 #  - As target-cpu is set, if target has cpu, it is used (ABI depends on target triple
 #    w/ or w/o hf suffix. This is set by kconfig dependencies too.
-#  - In the case of float software emulation on target w/ FPU, one has to add `soft-float`
+#  - In the case of float software emulation on target w/ FPU, one has to add `-fpregs`
 #    to `target-features` compile options
 if target_has_fpu
 if target_use_fpu
 target_cflags += [kconfig_data.get_unquoted('CONFIG_FPU_CFLAGS')]
 else
-target_rustargs += [ '-Ctarget-feature=+soft-float' ]
+target_rustargs += [ '-Ctarget-feature=-fpregs' ]
 endif
-endif
-
-# XXX:
-# Because of some rustc weird design choices, some options may have different meanings
-# for different target arch and/or target cpu.
-# For instance, with thumbv7em-none-eabi and cortex-m4 cpu, FPU is enable by defaut
-# but is optional according to ARM specification. Thus, target feature `+soft-float`
-# is required in order to use software emulation.
-#
-# This is counterintuitive to enable a optinal feature by default.
-#
-# In the other hand, thumbv7-none-eabi, which stand for cortex-m3, does not have any
-# FPU support, which is soft float by defaut. This seems pretty obvious **BUT**
-# target feature is illegal here ...
-#
-# The result is the impossibility to set proper target feature option based on hardware
-# description, HAS_FPU not set (which might be the case for m3 and m4 cortex) leads to
-# two different option set.
-#
-# The root cause is the misunderstanding of FPU by rustc devel community.
-# They assume that software float emulation is a target cpu feature ... which makes no sense at all.
-# Software float emulation is the fallback in case of missing feature, FPU, which is a target
-# architecture co-processor.
-
-if not target_has_fpu and kconfig_data.get_unquoted('CONFIG_ARCH_ARM_CORTEX_NAME') == 'm4'
-target_rustargs += [ '-Ctarget-feature=+soft-float' ]
 endif
 
 foreach link_arg: target_link_args
